@@ -3498,7 +3498,7 @@ class DAG(BaseDag, LoggingMixin):
         next_run_date = (self.normalize_schedule(using_start_date)
                          if not self.is_subdag else using_start_date)
 
-        while next_run_date and next_run_date <= using_end_date:
+        while next_run_date and next_run_date <= using_end_date and next_run_date >= self.start_date:
             run_dates.append(next_run_date)
             next_run_date = self.following_schedule(next_run_date)
 
