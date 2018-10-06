@@ -20,4 +20,9 @@ set -exuo pipefail
 
 MYSQL_HOST=mysql
 
+# make sure mysql is done setting up
+while ! mysqladmin ping -h ${MYSQL_HOST} --silent; do
+    sleep 1
+done
+
 mysql -h ${MYSQL_HOST} -u root -e 'drop database if exists airflow; create database airflow'
