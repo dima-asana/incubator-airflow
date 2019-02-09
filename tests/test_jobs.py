@@ -1147,7 +1147,8 @@ class BackfillJobTest(unittest.TestCase):
             DummyOperator(
                 task_id='dummy',
                 dag=dag,
-                owner='airflow')
+                owner='airflow',
+            )
             return dag
 
         test_dag = get_test_dag_for_backfill()
@@ -1163,6 +1164,30 @@ class BackfillJobTest(unittest.TestCase):
                          test_dag.get_run_dates(
                              start_date=DEFAULT_DATE - datetime.timedelta(hours=3),
                              end_date=DEFAULT_DATE,))
+
+    def test_backfill_enqueue_backwards(self):
+        dag = self.dagbag.get_dag("test_start_date_scheduling")
+        dag.clear()
+
+        job = BackfillJob(
+            dag=dag,
+            start_date=DEFAULT_DATE,
+            end_date=DEFAULT_DATE + datetime.timedelta(days=5),
+            run_backwards=True
+        )
+        job.run()
+
+        session = settings.Session()
+        tis = session.query(TI).filter(
+            TI.dag_id == 'test_start_date_scheduling' and TI.task_id == 'dummy'
+        ).order_by(TI.execution_date).all()
+
+        queued_times = [ti.queued_dttm for ti in tis]
+        self.assertTrue(queued_times == sorted(queued_times, reverse=True))
+        self.assertTrue(all([ti.state == State.SUCCESS for ti in tis]))
+
+        dag.clear()
+        session.close()
 
 
 class LocalTaskJobTest(unittest.TestCase):
