@@ -1877,6 +1877,7 @@ class BackfillJob(BaseJob):
             verbose=False,
             conf=None,
             rerun_failed_tasks=False,
+            run_backwards=False,
             *args, **kwargs):
         """
         :param dag: DAG object.
@@ -1903,6 +1904,8 @@ class BackfillJob(BaseJob):
         :param rerun_failed_tasks: flag to whether to
                                    auto rerun the failed task in backfill
         :type rerun_failed_tasks: bool
+        :param run_backwards: Whether to process the dates from most to least recent
+        :type run_backwards bool
         :param args:
         :param kwargs:
         """
@@ -1919,6 +1922,7 @@ class BackfillJob(BaseJob):
         self.verbose = verbose
         self.conf = conf
         self.rerun_failed_tasks = rerun_failed_tasks
+        self.run_backwards = run_backwards
         super(BackfillJob, self).__init__(*args, **kwargs)
 
     def _update_counters(self, ti_status):
@@ -2424,6 +2428,9 @@ class BackfillJob(BaseJob):
         # Get intervals between the start/end dates, which will turn into dag runs
         run_dates = self.dag.get_run_dates(start_date=start_date,
                                            end_date=self.bf_end_date)
+        if self.run_backwards:
+            run_dates = run_dates[::-1]
+
         if len(run_dates) == 0:
             self.log.info("No run dates were found for the given dates and dag interval.")
             return
